@@ -24,7 +24,7 @@ public class ProyectoApplication {
 
 		@GetMapping("/saludo/{nombre}")
 		public String saludo(@PathVariable String nombre) {
-			return "¡Hola, " + nombre + "!";
+			return "Hola, " + nombre;
 		}
 
 		}
