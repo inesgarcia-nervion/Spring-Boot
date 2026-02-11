@@ -13,7 +13,6 @@ public class Alumno {
     private String nombre;
     private String email;
 
-
     // Getters y setters
     public Alumno() {
     }
