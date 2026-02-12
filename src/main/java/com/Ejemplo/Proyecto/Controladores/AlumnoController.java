@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.Ejemplo.Proyecto.Entidades.Alumno;
 import com.Ejemplo.Proyecto.Repositorios.AlumnoRepository;
+import com.Ejemplo.Proyecto.Service.AlumnoService;
 import com.Ejemplo.Proyecto.DTO.AlumnoDTO;
 
 import jakarta.validation.Valid;
@@ -37,123 +38,51 @@ import io.swagger.v3.oas.annotations.Parameter;
 public class AlumnoController {
 
     @Autowired
-    private AlumnoRepository repo;
+    private AlumnoService service; // Cambiar de repo a service
 
-    // Devuelve todos los alumnos
     @GetMapping
     @Operation(summary = "Listar alumnos", description = "Devuelve la lista completa de alumnos registrados en el sistema")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista de alumnos obtenida exitosamente",
-                    content = @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = Alumno.class)),
-                            examples = @ExampleObject(value = "[{\"id\":1,\"nombre\":\"Inés García\",\"email\":\"usuario@gmail.com\"}]")))
-    })
     public List<Alumno> listar() {
-        return repo.findAll();
+        return service.obtenerTodos();
     }
 
-    // Devuelve alumno por id
     @GetMapping("/{id}")
-    @Operation(summary = "Obtener alumno por ID", description = "Retorna un alumno específico según su identificador único")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Alumno encontrado",
-                    content = @Content(mediaType = "application/json", 
-                            schema = @Schema(implementation = Alumno.class),
-                            examples = @ExampleObject(value = "{\"id\":1,\"nombre\":\"Inés García\",\"email\":\"usuario@gmail.com\"}"))),
-            @ApiResponse(responseCode = "404", description = "Alumno no encontrado",
-                    content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{\"status\":404,\"message\":\"Alumno no encontrado\"}")))
-    })
-    public Optional<Alumno> getIdAlumno(
-            @Parameter(description = "ID del alumno a buscar", example = "1", required = true) 
-            @PathVariable Long id) {
-        return repo.findById(id);
+    @Operation(summary = "Obtener alumno por ID")
+    public ResponseEntity<Alumno> getIdAlumno(@PathVariable Long id) {
+        return service.obtenerPorId(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
-    // Crea alumno
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Crear alumno", description = "Registra un nuevo alumno en el sistema con los datos proporcionados")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Alumno creado exitosamente",
-                    content = @Content(mediaType = "application/json", 
-                            schema = @Schema(implementation = Alumno.class),
-                            examples = @ExampleObject(value = "{\"id\":1,\"nombre\":\"Inés García\",\"email\":\"usuario@gmail.com\"}"))),
-            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
-                    content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{\"email\":\"Email requerido\",\"nombre\":\"Nombre requerido\"}")))
-    })
-    public ResponseEntity<Alumno> crear(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Datos del alumno a crear", 
-                    required = true,
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = AlumnoDTO.class),
-                            examples = @ExampleObject(value = "{\"nombre\":\"Inés García\",\"email\":\"usuario@gmail.com\"}")
-                    )
-            )
-            @Valid @RequestBody AlumnoDTO dto) {
+    @Operation(summary = "Crear alumno")
+    public ResponseEntity<Alumno> crear(@Valid @RequestBody AlumnoDTO dto) {
         Alumno a = new Alumno();
         a.setNombre(dto.getNombre());
         a.setEmail(dto.getEmail());
-        Alumno saved = repo.save(a);
+        Alumno saved = service.crear(a);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
-    // Actualiza alumno
     @PutMapping("/{id}")
-    @Operation(summary = "Actualizar alumno", description = "Modifica los datos de un alumno existente")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Alumno actualizado exitosamente",
-                    content = @Content(mediaType = "application/json", 
-                            schema = @Schema(implementation = Alumno.class),
-                            examples = @ExampleObject(value = "{\"id\":1,\"nombre\":\"Nuevo Nombre\",\"email\":\"nuevo@gmail.com\"}"))),
-            @ApiResponse(responseCode = "404", description = "Alumno no encontrado",
-                    content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{\"status\":404,\"message\":\"Alumno no encontrado\"}"))),
-            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
-                    content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{\"email\":\"Formato inválido\"}")))
-    })
-    public ResponseEntity<Alumno> actualizar(
-            @Parameter(description = "ID del alumno a actualizar", example = "1", required = true) 
-            @PathVariable Long id,
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Datos actualizados del alumno", 
-                    required = true,
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = AlumnoDTO.class),
-                            examples = @ExampleObject(value = "{\"nombre\":\"Nuevo Nombre\",\"email\":\"nuevo@gmail.com\"}")
-                    )
-            )
-            @Valid @RequestBody AlumnoDTO dto) {
-        return repo.findById(id).map(existing -> {
-            existing.setNombre(dto.getNombre());
-            existing.setEmail(dto.getEmail());
-            Alumno saved = repo.save(existing);
-            return ResponseEntity.ok(saved);
-        }).orElseGet(() -> ResponseEntity.notFound().build());
+    @Operation(summary = "Actualizar alumno")
+    public ResponseEntity<Alumno> actualizar(@PathVariable Long id, @Valid @RequestBody AlumnoDTO dto) {
+        Alumno actualizado = new Alumno();
+        actualizado.setNombre(dto.getNombre());
+        actualizado.setEmail(dto.getEmail());
+        
+        return service.actualizar(id, actualizado)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
-    // Elimina alumno
     @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar alumno", description = "Elimina un alumno del sistema por su ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Alumno eliminado exitosamente", 
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "Alumno no encontrado",
-                    content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{\"status\":404,\"message\":\"Alumno no encontrado\"}")))
-    })
-    public ResponseEntity<Void> deleteAlumno(
-            @Parameter(description = "ID del alumno a eliminar", example = "1", required = true) 
-            @PathVariable Long id) {
-        if (!repo.existsById(id)) {
-            return ResponseEntity.notFound().build();
+    @Operation(summary = "Eliminar alumno")
+    public ResponseEntity<Void> deleteAlumno(@PathVariable Long id) {
+        if (service.eliminar(id)) {
+            return ResponseEntity.noContent().build();
         }
-        repo.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.notFound().build();
     }
 }
