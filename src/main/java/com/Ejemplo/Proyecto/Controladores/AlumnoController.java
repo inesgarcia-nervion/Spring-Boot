@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.Ejemplo.Proyecto.Entidades.Alumno;
 import com.Ejemplo.Proyecto.Repositorios.AlumnoRepository;
+import com.Ejemplo.Proyecto.DTO.AlumnoDTO;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/alumnos")
@@ -40,28 +43,33 @@ public class AlumnoController {
 
     // Crea alumno
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)         // Al crear el alumno, devuelve el código 201
-    public Alumno crear(@RequestBody Alumno alumno) {
-        return repo.save(alumno);
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<Alumno> crear(@Valid @RequestBody AlumnoDTO dto) {
+        Alumno a = new Alumno();
+        a.setNombre(dto.getNombre());
+        a.setEmail(dto.getEmail());
+        Alumno saved = repo.save(a);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     // Actualiza alumno
     @PutMapping("/{id}")
-    public Optional<Alumno> actualizar(@PathVariable Long id, @RequestBody Alumno alumno) {
+    public ResponseEntity<Alumno> actualizar(@PathVariable Long id, @Valid @RequestBody AlumnoDTO dto) {
         return repo.findById(id).map(existing -> {
-            existing.setNombre(alumno.getNombre());
-            existing.setEmail(alumno.getEmail());
-            return repo.save(existing);
-        });
+            existing.setNombre(dto.getNombre());
+            existing.setEmail(dto.getEmail());
+            Alumno saved = repo.save(existing);
+            return ResponseEntity.ok(saved);
+        }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     // Elimina alumno
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAlumno(@PathVariable Long id) {       // ResponseEntity para manejar respuestas HTTP
-        if (!repo.existsById(id)) {     // Si no existe el alumno, devuelve 404
+    public ResponseEntity<Void> deleteAlumno(@PathVariable Long id) {
+        if (!repo.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
-        repo.deleteById(id);            // Si existe, lo elimina y devuelve 204
+        repo.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 }
