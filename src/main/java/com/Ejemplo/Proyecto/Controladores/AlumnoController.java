@@ -21,9 +21,16 @@ import com.Ejemplo.Proyecto.Repositorios.AlumnoRepository;
 import com.Ejemplo.Proyecto.DTO.AlumnoDTO;
 
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @RestController
 @RequestMapping("/alumnos")
+@Tag(name = "Alumnos", description = "Operaciones sobre alumnos")
 public class AlumnoController {
 
     @Autowired
@@ -31,12 +38,18 @@ public class AlumnoController {
 
     // Devuelve todos los alumnos
     @GetMapping
+    @Operation(summary = "Listar alumnos", description = "Devuelve la lista completa de alumnos")
     public List<Alumno> listar() {
         return repo.findAll();
     }
 
     // Devuelve alumno por id
     @GetMapping("/{id}")
+    @Operation(summary = "Obtener alumno por id", description = "Devuelve un alumno por su identificador")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Alumno encontrado", content = @Content(schema = @Schema(implementation = Alumno.class))),
+            @ApiResponse(responseCode = "404", description = "No encontrado")
+    })
     public Optional<Alumno> getIdAlumno(@PathVariable Long id) {
         return repo.findById(id);
     }
@@ -44,6 +57,11 @@ public class AlumnoController {
     // Crea alumno
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Crear alumno", description = "Crea un nuevo alumno con los datos proporcionados")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Alumno creado", content = @Content(schema = @Schema(implementation = Alumno.class))),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos")
+    })
     public ResponseEntity<Alumno> crear(@Valid @RequestBody AlumnoDTO dto) {
         Alumno a = new Alumno();
         a.setNombre(dto.getNombre());
@@ -54,6 +72,12 @@ public class AlumnoController {
 
     // Actualiza alumno
     @PutMapping("/{id}")
+    @Operation(summary = "Actualizar alumno", description = "Actualiza los datos de un alumno existente")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Alumno actualizado", content = @Content(schema = @Schema(implementation = Alumno.class))),
+            @ApiResponse(responseCode = "404", description = "No encontrado"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos")
+    })
     public ResponseEntity<Alumno> actualizar(@PathVariable Long id, @Valid @RequestBody AlumnoDTO dto) {
         return repo.findById(id).map(existing -> {
             existing.setNombre(dto.getNombre());
@@ -65,6 +89,11 @@ public class AlumnoController {
 
     // Elimina alumno
     @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar alumno", description = "Elimina un alumno por su id")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Eliminado"),
+            @ApiResponse(responseCode = "404", description = "No encontrado")
+    })
     public ResponseEntity<Void> deleteAlumno(@PathVariable Long id) {
         if (!repo.existsById(id)) {
             return ResponseEntity.notFound().build();
